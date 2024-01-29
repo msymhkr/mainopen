@@ -1,0 +1,337 @@
+import datetime
+import openpyxl
+import pandas as pd
+from tkinter import *
+from tkinter import ttk
+import qrcode
+
+root = Tk()
+root.title('Inventory')
+root.geometry("1350x850")
+tree_frame = Frame(root)
+tree_frame.grid(row=26, column=0, padx=0, pady=10, rowspan=20, columnspan=15, sticky=S)
+my_tree = ttk.Treeview(tree_frame, selectmode='browse')
+my_tree.grid(row=26, sticky=S, padx=10, pady=10, rowspan=20, columnspan=15)
+tree_scroll = Scrollbar(tree_frame, orient='vertical', command=my_tree.yview)
+tree_scroll.grid(row=26, column=15, rowspan=20, sticky=NS)
+
+book = openpyxl.load_workbook(r"C:\Users\Chiu\Desktop\Test IHC.xlsx")
+sheet1 = book["Ab_list"]
+
+headinglist = ['Item Name',
+               'Brand Name',
+               'Category Number',
+               'Lot Number',
+               'Expiry Date',
+               'PO Number',
+               'Date Received',
+               'Bench',
+               'Date In Use',
+               'Remark',
+               'Staff Name',
+               'Input Time',
+               'Evaluation Case Number',
+               'Evaluation Result',
+               'Evaluation Staff',
+               'Evaluation Date']
+
+str_var01, str_var02, str_var03 = StringVar(), StringVar(), StringVar()
+var04 = IntVar()
+str_var01.trace("w", lambda name, index, mode, sv=str_var01: callback(str_var01))
+str_var02.trace("w", lambda name, index, mode, sv=str_var02: record(str_var02, str_var03))
+str_var03.trace("w", lambda name, index, mode, sv=str_var03: record(str_var02, str_var03))
+
+
+# """ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx """
+
+
+def callback(str_var01):
+    """ QR code matching
+        2w23e3r34r123-456rfr       20 - 10
+        01076133361747841070551201 1724110524005353955214 92951-300 11221107       RB
+        12345678901234567890223456789032345678904234567890523456789062345678
+        01076133361748211066314301 1724061524005424569214 92951-224 11220617        ucc1 """
+    qrr = str_var01.get()
+    for a in reagentlist:
+        for b in a.values():
+            for c in b:
+                if len(qrr) == 68:
+                    for d in c.values():
+                        if qrr.find(d) > 0:
+                            dk = {k for k in c if c[k] == d}  # find key from value
+                            BrandNametxt.insert(0, list(a)[0])
+                            ItemNametxt.insert(0, list(dk)[0])
+                            CategoryNumbertxt.insert(0, d)
+                            LotNumbertxt.insert(0, qrr[18:26])
+                            ExpiryDatetxt.insert(0, qrr[29:35])
+                            DateReceivedtxt.insert(0, datetime.datetime.now().strftime("%d/%m/%Y"))
+                            print(type(a))
+                            print(a.keys())
+                        else:
+                            pass
+
+
+def clicksave():
+    """delete blank rows"""
+    drow = range(1, sheet1.max_row)
+    for i in drow:
+        if sheet1.cell(row=i, column=1).value is None:
+            sheet1.delete_rows(i, 1)
+        elif sheet1.cell(row=i, column=1).value == '':
+            sheet1.delete_rows(i, 1)
+    """Sequence should not be changed"""
+    headinglist01 = [ItemNametxt.get(),
+                     BrandNametxt.get(),
+                     LotNumbertxt.get(),
+                     CategoryNumbertxt.get(),
+                     ExpiryDatetxt.get(),
+                     PONumbertxt.get(),
+                     DateReceivedtxt.get(),
+                     Benchtxt.get(),
+                     DateInUsetxt.get(),
+                     Remarktxt.get(),
+                     StaffNametxt.get(),
+                     EvaluationCaseNotxt.get(),
+                     EvaluationResulttxt.get(),
+                     EvaluationStafftxt.get(),
+                     EvaluationDatetxt.get(),
+                     datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")]      # inputtime]
+
+
+    """change to date xx/xx/xx"""
+    if 5 >= len(ExpiryDatetxt.get()) >= 4:
+        ExpiryDatetxt02 = "30/" + ExpiryDatetxt.get()
+    else:
+        ExpiryDatetxt02 = ExpiryDatetxt.get()
+    headinglist01[4] = ExpiryDatetxt02
+    ii = 1
+    maxr = sheet1.max_row + 1
+    for item1 in headinglist01:
+        sheet1.cell(row=maxr, column=ii).value = item1
+        ii = ii + 1
+    book.save(r"C:\Users\Chiu\Desktop\Test IHC.xlsx")
+
+
+def cleartxt():
+    ItemNametxt.delete(0, END),
+    BrandNametxt.delete(0, END),
+    CategoryNumbertxt.delete(0, END),
+    LotNumbertxt.delete(0, END),
+    ExpiryDatetxt.delete(0, END),
+    PONumbertxt.delete(0, END),
+    DateReceivedtxt.delete(0, END),
+    Benchtxt.delete(0, END),
+    DateInUsetxt.delete(0, END),
+    Remarktxt.delete(0, END),
+    QrReadingtxt.delete(0, END),
+    Searchtxt.delete(0, END),
+    EvaluationCaseNotxt.delete(0, END),
+    EvaluationResulttxt.delete(0, END),
+    EvaluationStafftxt.delete(0, END),
+    EvaluationDatetxt.delete(0, END),
+    Amendbtn.deselect()
+
+
+def record(str_var02, str_var03):
+    """show search record in treeview"""
+    rcd02, rcd03 = str_var02.get(), str_var03.get()
+    for rr in alllist:
+        for arr in rr:
+            if str(arr).upper() == (rcd02.upper() or rcd03.upper()) and (var04.get() == 0):
+                my_tree.insert(parent='', index='end', values=(rr[0:]))
+            elif rcd02 == "" and rcd03 == "":
+                for rrd in my_tree.get_children():
+                    my_tree.delete(rrd)
+    # print(my_tree.get_children())
+
+
+def click01(event):
+    global alllist
+    headinglist01 = [ItemNametxt,
+                     BrandNametxt,
+                     LotNumbertxt,
+                     CategoryNumbertxt,
+                     ExpiryDatetxt,
+                     PONumbertxt,
+                     DateReceivedtxt,
+                     Benchtxt,
+                     DateInUsetxt,
+                     Remarktxt,
+                     StaffNametxt,
+                     EvaluationCaseNotxt,
+                     EvaluationResulttxt,
+                     EvaluationStafftxt,
+                     EvaluationDatetxt]
+
+    for selected_item in my_tree.selection():
+        item = my_tree.item(selected_item)
+        itemid = my_tree.identify('item', event.x, event.y)
+        col_id = my_tree.identify('column', event.x, event.y)
+        iiid = my_tree.index(itemid)
+        # data = my_tree.set(itemid, col_id)
+        count = 1
+        if var04.get() == 1:                                          # amend check box ticked
+            for hhh in headinglist01:
+                hhh.delete(0, END)
+            headinglist01[0].insert(0, item['values'][0])
+            for ccc in range(1, len(headinglist01)):
+                headinglist01[ccc].insert(0, item['values'][ccc])
+            for ddd in alllist:                                        # find row number in list / excel
+                print(list(item['values'][0:6+11]), "i")
+                print(list(ddd[0:6+11]), "lis")
+                if list(item['values'][0:6+11]) == list(ddd[0:6+11]):
+                    print(ddd, count, "ghhhggghgh")
+                    # for hhh in headinglist01:      # save renew amend data in alllist / excel ????XXXXXX
+                    #     newlist1 = []
+                    #     newlist1.append(hhh.get())
+                    #     print(newlist1)
+                    #     alllist[count] = newlist1
+                else:
+                    count += 1
+
+        elif var04.get() == 0:
+            BrandNametxt.insert(0, 'hhhhhh')
+
+
+def popup():
+    """xxxxxxxxxxxxx"""
+    qrr = QrReadingtxt.get()
+    if len(qrr) == 42 and qrr.find('123'):
+        # print("44444")
+        ItemNametxt.insert(0, 'Reaction buffer')
+        BrandNametxt.insert(0, 'Ventana')
+    else:
+        print(555555)
+    # messagebox.showinfo("This is", "Hello")
+    # print('pop' + sheet1['A2'].value)
+
+# """xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"""
+titleinventorylb = Label(root, text="Inventory")
+titleinventorylb.grid(row=0, column=0, columnspan=6)
+titleinventorylb.configure(font=("Arial", 20, "bold"))
+StaffNamelb = Label(root, text="Staff")
+StaffNamelb.grid(row=1, column=0, padx=0, sticky=W, pady=5)
+StaffNametxt = Entry(root, width=40)
+StaffNametxt.grid(row=1, column=1, sticky=W)
+ItemNamelb = Label(root, text="Item Name")
+ItemNamelb.grid(row=2, column=0, padx=0, sticky=W, pady=5)
+ItemNametxt = Entry(root, width=40, textvariable=str_var02)
+ItemNametxt.grid(row=2, column=1, sticky=W)
+BrandNamelb = Label(root, text="Brand Name")
+BrandNamelb.grid(row=3, column=0, padx=0, sticky=W, pady=5)
+BrandNametxt = Entry(root, width=40)
+BrandNametxt.grid(row=3, column=1, sticky=W)
+CategoryNumberlb = Label(root, text="Category Number")
+CategoryNumberlb.grid(row=3, column=2, padx=0, sticky=W, pady=5)
+CategoryNumbertxt = Entry(root, width=40)
+CategoryNumbertxt.grid(row=3, column=3, sticky=W, padx=5)
+LotNumberlb = Label(root, text="Lot Number")
+LotNumberlb.grid(row=4, column=0, padx=0, sticky=W, pady=5)
+LotNumbertxt = Entry(root, width=40)
+LotNumbertxt.grid(row=4, column=1, sticky=W)
+ExpiryDatelb = Label(root, text="Expiry Date")
+ExpiryDatelb.grid(row=5, column=0, padx=0, sticky=W, pady=5)
+ExpiryDatetxt = Entry(root, width=40)
+ExpiryDatetxt.grid(row=5, column=1, sticky=W)
+Benchlb = Label(root, text="Bench")
+Benchlb.grid(row=5, column=2, padx=0, sticky=W, pady=5)
+Benchtxt = ttk.Combobox(root, width=40)
+Benchtxt['values'] = ('', 'IHC', 'ISH', 'FISH', 'Histo', 'Cyto', 'Others')
+Benchtxt.grid(row=5, column=3, sticky=W, padx=5)
+PONumberlb = Label(root, text="PO Number")
+PONumberlb.grid(row=6, column=0, padx=0, sticky=W, pady=5)
+PONumbertxt = Entry(root, width=40)
+PONumbertxt.grid(row=6, column=1, sticky=W)
+DateReceivedlb = Label(root, text="Date Received")
+DateReceivedlb.grid(row=6, column=2, padx=0, sticky=W, pady=5)
+DateReceivedtxt = Entry(root, width=40)
+DateReceivedtxt.grid(row=6, column=3, sticky=W)
+DateInUselb = Label(root, text="Date in Use")
+DateInUselb.grid(row=7, column=0, padx=0, sticky=W, pady=5)
+DateInUsetxt = Entry(root, width=40)
+DateInUsetxt.grid(row=7, column=1, sticky=W)
+Remarklb = Label(root, text="Remark")
+Remarklb.grid(row=8, column=0, padx=0, sticky=W, pady=5)
+Remarktxt = Entry(root, width=40)
+Remarktxt.grid(row=8, column=1, sticky=W)
+QrReadinglb = Label(root, text="QR Reading")
+QrReadinglb.grid(row=10, column=0, padx=0, sticky=W, pady=5)
+QrReadingtxt = Entry(root, width=40, textvariable=str_var01)
+QrReadingtxt.grid(row=10, column=1, sticky=W, padx=0, pady=5)
+Searchlb = Label(root, text="Search")
+Searchlb.grid(row=15, column=0, padx=0, sticky=W, pady=5)
+Searchtxt = Entry(root, width=40, textvariable=str_var03)
+Searchtxt.grid(row=15, column=1, sticky=W, padx=0, pady=5)
+Nextbut = Button(root, text="Next", width=60, command=clicksave)
+Nextbut.grid(row=11, column=0, sticky=W, padx=0, pady=5, columnspan=2)
+Clearbut = Button(root, text="Clear", width=60, command=cleartxt)
+Clearbut.grid(row=12, column=0, sticky=W, padx=0, pady=5, columnspan=2)
+Closebut = Button(root, text="Close", width=60, command=root.quit)
+Closebut.grid(row=13, column=0, sticky=W, padx=0, pady=5, columnspan=2)
+Button(root, text="Popup", command=popup).grid(row=14, sticky=W, padx=0, pady=5, columnspan=2)
+Amendbtn = Checkbutton(root, text='Amend Data', variable=var04, onvalue=1, offvalue=0)
+Amendbtn.grid(row=15, column=2, sticky=W, padx=0, pady=5)
+
+EvaluationCaseNolb = Label(root, text="Evaluation \n Case No")
+EvaluationCaseNolb.grid(row=3, column=4)
+EvaluationCaseNotxt = Entry(root, width=40)
+EvaluationCaseNotxt.grid(row=3, column=5, sticky=W)
+EvaluationResultlb = Label(root, text="Evaluation \n Result")
+EvaluationResultlb.grid(row=4, column=4)
+EvaluationResulttxt = Entry(root, width=40)
+EvaluationResulttxt.grid(row=4, column=5, sticky=W)
+EvaluationStafflb = Label(root, text="Evaluation \n Staff")
+EvaluationStafflb.grid(row=5, column=4)
+EvaluationStafftxt = Entry(root, width=40)
+EvaluationStafftxt.grid(row=5, column=5, sticky=W)
+EvaluationDatelb = Label(root, text="Evaluation \n Date")
+EvaluationDatelb.grid(row=6, column=4)
+EvaluationDatetxt = Entry(root, width=40)
+EvaluationDatetxt.grid(row=6, column=5, sticky=W)
+
+reagentlist = [{'Ventana': [{'Reaction Buffer': '951-300'},
+                            {'Ultra LCS': '111-222'},
+                            {'Silver Wash': '789-987'},
+                            {'Ultra CC1': '951-224'}
+                            ]},
+               {'Leica': [{'Bond Wash': 'W1234'},
+                          {'ER1': 'E7777'},
+                          {'ER2': 'E8888'}
+                          ]},
+               {'Dako': [{'Wash Buffer': '34343'},
+                         {'Retrieval high pH': '90909'}
+                         ]}]
+
+# """xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"""
+"""all excel to list"""
+alllist = []
+for eachrow in sheet1.iter_rows(min_row=1, max_row=sheet1.max_row, min_col=1, max_col=sheet1.max_column,
+                                values_only=True):
+    alllist.append(eachrow)
+"""save list to .txt"""
+with open(r"C:\Users\Chiu\Desktop\ihcstock.txt", 'w+') as fff:
+    for iii in alllist:
+        fff.write(str(iii) + '\n')
+fff.close()
+"""save .txt to excel"""
+# ttt = pd.read_csv(r"C:\Users\Chiu\Desktop\ihcstock.txt" , sep=","+" ")
+# ttt.to_excel(r"C:\Users\Chiu\Desktop\Testtttt.xlsx", 'sheet2')
+"""print by search"""
+# df = pd.read_excel(r"C:\Users\Chiu\Desktop\Test IHC.xlsx", engine="openpyxl")
+# result = df[df['Ab Name'].str.contains("20")]
+# print(result)
+
+# """xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"""
+"""Treeview"""
+my_tree['columns'] = headinglist
+my_tree.column("#0", width=0, stretch=NO)
+for hd in headinglist:
+
+    my_tree.column(str(hd), anchor=CENTER, width=88)
+    my_tree.heading(str(hd), text=str(hd), anchor=CENTER)
+# my_tree.insert(parent='', index='end', values=(alllist[2][0], alllist[2][1]))
+my_tree.bind('<<TreeviewSelect>>', click01)
+
+print(alllist)
+book.save(r"C:\Users\Chiu\Desktop\Test IHC.xlsx")
+root.mainloop()
